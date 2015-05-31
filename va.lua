@@ -31,8 +31,8 @@ sigma_squared = nn.Square()(sigma)
 log_sigma_sq = nn.Log()(sigma_squared)
 minus_log_sigma = nn.MulConstant(-1)(log_sigma_sq)
 loss_z = nn.CAddTable()({mu_squared, sigma_squared, minus_log_sigma})
-loss_z = nn.MulConstant(0.5)(loss_z)
 loss_z = nn.AddConstant(-1)(loss_z)
+loss_z = nn.MulConstant(0.5)(loss_z)
 encoder = nn.gModule({raw_features, e}, {encoder_z, loss_z})
 
 z = nn.Identity()()
@@ -74,17 +74,17 @@ local feval = function(x)
   local output = decoder:forward(z)
   local loss_output = criterion:forward(output, features_input)
   local loss = torch.mean(loss_z) + loss_output
-  print(output[7]:gt(0.3))
-  print(features_input[7]:gt(0.5))  
+  --print(output[7]:gt(0.3))
+  --print(features_input[7]:gt(0.5))  
   --print('--')
-  --print(loss_output)
-  --print(torch.mean(loss_z))
+  print(loss_output)
+  print(torch.mean(loss_z))
   
   --backward
   
   local doutput = criterion:backward(output, features_input)
   local dz = decoder:backward(z, doutput)
-  local dloss_z = torch.zeros(loss_z:size())
+  local dloss_z = torch.ones(loss_z:size())
   encoder:backward({features_input, e}, {dz, dloss_z})
 
   return loss, grads
@@ -96,7 +96,7 @@ end
 local losses = {}
 local optim_state = {learningRate = 1e-1}
 
-for i = 1, 20 do
+for i = 1, 100 do
   local _, loss = optim.adagrad(feval, params, optim_state)
   losses[#losses + 1] = loss[1] -- append the new loss
 
@@ -109,8 +109,10 @@ end
 
 z, loss_z = unpack(encoder:forward({features_input, e}))
 output = decoder:forward(z)
-print(output[7]:gt(0.4))
-print(features_input[7]:gt(0.5))
+print(output[9]:gt(0.4))
+print(features_input[9]:gt(0.5))
+print(output[10]:gt(0.4))
+print(features_input[10]:gt(0.5))
 
 
 a = 1
