@@ -9,23 +9,21 @@ local mnist = require 'mnist'
 
 
 n_features = 28 * 28
+n_hidden = 500
+n_z = 400
 
 raw_features = nn.Identity()()
 features = nn.Reshape(n_features)(raw_features)
-h1_n = 200
-h1 = nn.Linear(n_features, h1_n)(features)
+
+h1 = nn.Linear(n_features, n_hidden)(features)
 h2 = nn.Tanh()(h1)
-h3_n = 100
-h3 = nn.Linear(h1_n, h3_n)(h2)
-h4 = nn.Tanh()(h3)
-mu = nn.Linear(h3_n, 1)(h4)
+mu = nn.Linear(n_hidden, n_z)(h2)
+sigma = nn.Linear(n_hidden, n_z)(h2)
+sigma = nn.Exp()(sigma)
 
-z_sigma = nn.Linear(h3_n, 1)(h4)
-sigma = nn.Exp()(z_sigma)
 e = nn.Identity()()
-
 sigma_e = nn.CMulTable()({sigma, e})
-encoder_z = nn.CAddTable()({mu, sigma_e})
+z = nn.CAddTable()({mu, sigma_e})
 mu_squared = nn.Square()(mu)
 sigma_squared = nn.Square()(sigma)
 log_sigma_sq = nn.Log()(sigma_squared)
@@ -33,18 +31,37 @@ minus_log_sigma = nn.MulConstant(-1)(log_sigma_sq)
 loss_z = nn.CAddTable()({mu_squared, sigma_squared, minus_log_sigma})
 loss_z = nn.AddConstant(-1)(loss_z)
 loss_z = nn.MulConstant(0.5)(loss_z)
-encoder = nn.gModule({raw_features, e}, {encoder_z, loss_z})
+loss_z = nn.Sum(2)(loss_z)
+encoder = nn.gModule({raw_features, e}, {z, loss_z})
 
 z = nn.Identity()()
-y1_n = 100
-y1 = nn.Linear(1,y1_n)(z)
-y2 = nn.Tanh()(y1)
-y3_n = 200
-y3 = nn.Linear(y1_n, y3_n)(y2)
-y4 = nn.Tanh()(y3)
-output = nn.Linear(y3_n,28*28)(y4)
-reshaped_output = nn.Reshape(28, 28)(output)
-decoder = nn.gModule({z}, {reshaped_output})
+h1 = nn.Linear(n_z, n_hidden)(z)
+h2 = nn.Tanh()(h1)
+mu = nn.Linear(n_hidden, n_features)(h2)
+sigma = nn.Linear(n_hidden, n_features)(h2)
+sigma = nn.Exp()(sigma)
+
+neg_mu = nn.MulConstant(-1)(mu)
+d = nn.CAddTable()({features, neg_mu})
+d2 = nn.Power(2)(d)
+sigma2_inv = nn.Power(-2)(sigma)
+exp_arg = nn.CMulTable()({d2, sigma2_inv})
+exp_arg = nn.Sum(2)(exp_arg)
+exp_arg = nn.MulConstant(-1)(exp_arg)
+exp = nn.Exp()(exp_arg)
+
+sigma_inv = nn.Power(-1)(sigma)
+l = {}
+for i = 1, n_features do
+  l[#l + 1] = nn.Select(2,i)(sigma_inv)
+end
+sigma_mm = nn.CMulTable()(l)
+r = nn.CMulTable()({exp, sigma_mm})
+r = nn.MulConstant(math.pow((2 * math.pi), -0.5 * n_features))(r)
+r = nn.Log()(r)
+loss_x = nn.MulConstant(-1)(r)
+output = nn.Reshape(28, 28)(mu)
+decoder = nn.gModule({z}, {output, loss_x})
 
 trainset = mnist.traindataset()
 testset = mnist.testdataset()
