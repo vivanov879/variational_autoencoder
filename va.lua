@@ -84,6 +84,7 @@ local feval = function(x)
   grads:zero()
 
   --forward
+  e = torch.randn(n_data, n_z)
   z, loss_z = unpack(encoder:forward({features_input, e}))
   local output, loss_x = unpack(decoder:forward({features_input, z}))
   local loss = torch.mean(loss_z) + torch.mean(loss_x)
@@ -106,7 +107,7 @@ end
 --
 optim_state = {learningRate = 1e-2}
 
-for i = 1, 1000 do
+for i = 1, 10000 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
@@ -116,16 +117,16 @@ for i = 1, 1000 do
   end
 end
 
+e = torch.randn(n_data, n_z)
 z, loss_z = unpack(encoder:forward({features_input, e}))
 output, _ = unpack(decoder:forward({torch.zeros(features_input:size()), z}))
-print(output[9]:gt(0.5))
-print(features_input[9]:gt(0.5))
-print(output[10]:gt(0.5))
-print(features_input[10]:gt(0.5))
-
-
-a = 1
-
-
+print(output[1]:gt(0.5))
+print(features_input[1]:gt(0.5))
+print(output[2]:gt(0.5))
+print(features_input[2]:gt(0.5))
+print(output[3]:gt(0.5))
+print(features_input[3]:gt(0.5))
+print(output[4]:gt(0.5))
+print(features_input[4]:gt(0.5))
 
 
