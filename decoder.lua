@@ -6,7 +6,7 @@ require 'nngraph'
 
 n_features = 28 * 28
 n_hidden = 500
-n_z = 10
+n_z = 400
 
 
 raw_features = nn.Identity()()
@@ -29,6 +29,7 @@ sigma_mm = nn.Log()(sigma)
 sigma_mm = nn.Sum(2)(sigma)
 loss_x = nn.CAddTable()({exp_arg, sigma_mm})
 loss_x = nn.AddConstant(0.5 * n_features * math.log((2 * math.pi)))(loss_x)
+loss_x = exp_arg
 
 output = nn.Reshape(28, 28)(mu)
 decoder = nn.gModule({raw_features, z}, {output, loss_x})

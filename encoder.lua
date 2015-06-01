@@ -5,7 +5,7 @@ require 'nngraph'
 
 n_features = 28 * 28
 n_hidden = 500
-n_z = 10
+n_z = 400
 
 raw_features = nn.Identity()()
 features = nn.Reshape(n_features)(raw_features)
