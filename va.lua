@@ -8,8 +8,8 @@ local model_utils=require 'model_utils'
 local mnist = require 'mnist'
 
 n_features = 28 * 28
-n_hidden = 200
-n_z = 20
+n_hidden = 100
+n_z = 10
 
 --encoder
 raw_features = nn.Identity()()
@@ -105,9 +105,9 @@ end
 ------------------------------------------------------------------------
 -- optimization loop
 --
-optim_state = {learningRate = 1e-2}
+optim_state = {learningRate = 2e-2}
 
-for i = 1, 10000 do
+for i = 1, 500 do
   local _, loss = optim.adagrad(feval, params, optim_state)
 
   if i % 10 == 0 then
@@ -129,4 +129,10 @@ print(features_input[3]:gt(0.5))
 print(output[4]:gt(0.5))
 print(features_input[4]:gt(0.5))
 
+
+z = torch.randn(n_data, n_z)
+output, _ = unpack(decoder:forward({torch.zeros(features_input:size()), z}))
+  for i = 1, n_data do
+  print(output[i]:gt(0.25))
+end
 
